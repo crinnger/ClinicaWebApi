@@ -34,6 +34,7 @@ import javax.transaction.Transactional;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -162,7 +163,7 @@ class LoginServiceImplTest {
     @Test
     @WithUserDetails("000.000.000-00")
     void selectRoleNotExistRole() {
-        LoginSelectRoleDto loginSelectRoleDto = new LoginSelectRoleDto(99L);
+        LoginSelectRoleDto loginSelectRoleDto = new LoginSelectRoleDto(UUID.randomUUID());
         Assertions.assertThrows(BadCredentialsException.class,()->loginService.selectRole(loginSelectRoleDto));
     }
 

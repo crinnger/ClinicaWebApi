@@ -1,7 +1,9 @@
 package br.com.crinnger.ClinicasWebApi.security;
 
+import br.com.crinnger.ClinicasWebApi.model.Clinica;
 import br.com.crinnger.ClinicasWebApi.model.security.User;
 import br.com.crinnger.ClinicasWebApi.model.security.UserClinicaRole;
+import br.com.crinnger.ClinicasWebApi.repository.ClinicaRepository;
 import br.com.crinnger.ClinicasWebApi.repository.UserClinicaRoleRepository;
 import br.com.crinnger.ClinicasWebApi.repository.UserRepository;
 import com.auth0.jwt.JWT;
@@ -9,6 +11,7 @@ import com.auth0.jwt.JWTCreator;
 import com.auth0.jwt.JWTVerifier;
 import com.auth0.jwt.algorithms.Algorithm;
 import com.auth0.jwt.interfaces.DecodedJWT;
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -20,15 +23,13 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.time.ZoneId;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Date;
-import java.util.HashMap;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import static java.util.Arrays.stream;
 
 @Service
+@RequiredArgsConstructor
 public class JwtTokenServiceImpl implements JwtTokenService{
     @Value(("${secutiry.jwt.token.expiration}"))
     public String expirationToken;
@@ -39,11 +40,11 @@ public class JwtTokenServiceImpl implements JwtTokenService{
     @Value(("${secutiry.jwt.secret}"))
     private String secret;
 
-    @Autowired
-    private UserRepository userRepository;
+    private final UserRepository userRepository;
 
-    @Autowired
-    private UserClinicaRoleRepository userClinicaRoleRepository;
+    private final UserClinicaRoleRepository userClinicaRoleRepository;
+
+    private final ClinicaRepository clinicaRepository;
 
     @Override
     public String generationToken(User user) {
@@ -93,8 +94,14 @@ public class JwtTokenServiceImpl implements JwtTokenService{
         }
         User user;
         if(jwtUserClinicaRole!=null){
-          UserClinicaRole userClinicaRole = userClinicaRoleRepository.findById(Long.valueOf(jwtUserClinicaRole))
+            Clinica clinica=clinicaRepository.findById(UUID.fromString(jwtClinica))
+                    .orElseThrow(()-> new BadCredentialsException("Token invalido"));
+          UserClinicaRole userClinicaRole = userClinicaRoleRepository
+                  .findById(UUID.fromString(jwtUserClinicaRole))
                   .orElseThrow(()-> new BadCredentialsException("Token invalido"));
+          if(!clinica.getId().equals(userClinicaRole.getClinica().getId())){
+              throw new BadCredentialsException("Necessario revalidar Token");
+          }
           user=userClinicaRole.getUser();
           if(!authorities.equals(user.getAuthorities())){
               throw new BadCredentialsException("Necessario revalidar Token");
